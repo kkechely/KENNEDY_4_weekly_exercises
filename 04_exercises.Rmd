@@ -95,14 +95,70 @@ These exercises will reiterate what you learned in the "Mapping data with R" tut
 ### Starbucks locations (`ggmap`)
 
   1. Add the `Starbucks` locations to a world map. Add an aesthetic to the world map that sets the color of the points according to the ownership type. What, if anything, can you deduce from this visualization?  
+  
+```{r}
+#Code from "Mapping data in R" tutorial
 
-  2. Construct a new map of Starbucks locations in the Twin Cities metro area (approximately the 5 county metro area).  
+world <- get_stamenmap(
+    bbox = c(left = -180, bottom = -57, right = 179, top = 82.1), 
+    maptype = "terrain",
+    zoom = 2)
+
+ggmap(world) + 
+  geom_point(data = Starbucks, 
+             aes(x = Longitude, y = Latitude, color = `Ownership Type`), 
+             alpha = .3, 
+             size = .1) +
+  theme_map() +
+  labs(title = "Starbucks Across the World")
+```
+  
+
+  2. Construct a new map of Starbucks locations in the Twin Cities metro area (approximately the 5 county metro area). 
+  
+```{r}
+tc <- get_stamenmap(
+    bbox = c(left = -95, bottom = 44.6543, right = -92.7811, top = 45.4514), 
+    maptype = "terrain",
+    zoom = 11)
+
+ggmap(tc) + 
+  geom_point(data = Starbucks, 
+             aes(x = Longitude, y = Latitude, color = `Ownership Type`), 
+             size = .3) +
+  theme_map() +
+  labs(title = "Map of Twin Cities Starbucks")
+```
+  
 
   3. In the Twin Cities plot, play with the zoom number. What does it do?  (just describe what it does - don't actually include more than one map).  
+  
+  If we have a low zoom number like the world map, it is really blurry and you can't make out the map. Increasing zoom also adds more highways and streets. It also decreases the size of the city labels and adds more of them.
 
   4. Try a couple different map types (see `get_stamenmap()` in help and look at `maptype`). Include a map with one of the other map types.  
+  
+```{r}
+world_toner <- get_stamenmap(
+    bbox = c(left = -180, bottom = -57, right = 179, top = 82.1), 
+    maptype = "toner",
+    zoom = 2)
+
+ggmap(world_toner) +
+  labs(title ="World Map")
+```
+  
 
   5. Add a point to the map that indicates Macalester College and label it appropriately. There are many ways you can do think, but I think it's easiest with the `annotate()` function (see `ggplot2` cheatsheet).
+  
+```{r}
+ggmap(world_toner) + 
+  geom_point() +
+  annotate(geom = "point", x =  - 93.1691, y =44.937, color = "red") +
+  annotate(geom = "text", x =  - 93.1691, y =49, label = "Macalester", color = "red")+
+  labs("title = World Map with Macalester College")
+  theme_map()
+```
+  
 
 ### Choropleth maps with Starbucks data (`geom_map()`)
 
