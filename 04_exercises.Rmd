@@ -178,18 +178,99 @@ starbucks_with_2018_pop_est <-
 ```
 
   6. **`dplyr` review**: Look through the code above and describe what each line of code does.
+  
+  The first line follows the link and reads the CSV file into a data frame. The second line separates the state variable into two variables so we are able to get rid of the "." in the state variable in the next line. The mutate function changes the states to be in all lowercase. 
+  
+  The Starbucks data first names the new data set and then merges it with the census data and matches the "state_name" and "state" variables. The last line creates a new variables for the number of Starbucks per 10000 people in that state.
 
   7. Create a choropleth map that shows the number of Starbucks per 10,000 people on a map of the US. Use a new fill color, add points for all Starbucks in the US (except Hawaii and Alaska), add an informative title for the plot, and include a caption that says who created the plot (you!). Make a conclusion about what you observe.
+  
+```{r}
+states_map <- map_data("state")
+
+# map that colors state by number of Starbucks
+starbucks_with_2018_pop_est %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state_name,
+               fill = starbucks_per_10000)) +
+  expand_limits(x = states_map$long, y = states_map$lat) + 
+  theme_map() +
+  scale_color_colorblind()
+```
+  
 
 ### A few of your favorite things (`leaflet`)
 
   8. In this exercise, you are going to create a single map of some of your favorite places! The end result will be one map that satisfies the criteria below. 
 
-  * Create a data set using the `tibble()` function that has 10-15 rows of your favorite places. The columns will be the name of the location, the latitude, the longitude, and a column that indicates if it is in your top 3 favorite locations or not. For an example of how to use `tibble()`, look at the `favorite_stp_by_lisa` I created in the data R code chunk at the beginning.  
+  * Create a data set using the `tibble()` function that has 10-15 rows of your favorite places. The columns will be the name of the location, the latitude, the longitude, and a column that indicates if it is in your top 3 favorite locations or not. For an example of how to use `tibble()`, look at the `favorite_stp_by_lisa` I created in the data R code chunk at the beginning. 
+  
+```{r}
+favorite_stp_by_kennedy <- tibble(
+  place = c("Rochester Home", "Macalester Softball Field", "Target", 
+            "School Home", "Lake Bde Maka Ska", "Moka Coffee",
+            "Dunkin' Donuts", "Butler University", "Lincoln, NE", 
+            "Breckenridge, CO"),
+  long = c(-92.492270, -93.169980, -93.155610, 
+           -93.169320, -93.306450, -92.463114, 
+           -93.16700744628906, -86.16897583007812, -96.7077751, 
+           -106.04692840576172),
+  lat = c(44.013100, 44.934770, 44.953250,
+          44.944720, 44.948140, 44.0334518, 
+          44.9447135925293, 39.83837127685547, 40.8088861,
+          39.473114013671875),
+  top3 = c(0,1,0,
+           0,0,1,
+           0,0,0,
+           1)
+  )
+```
+  
 
   * Create a `leaflet` map that uses circles to indicate your favorite places. Label them with the name of the place. Choose the base map you like best. Color your 3 favorite places differently than the ones that are not in your top 3 (HINT: `colorFactor()`). Add a legend that explains what the colors mean.  
   
+```{r}
+pal <- colorFactor("viridis", 
+                   domain = favorite_stp_by_kennedy$top3)
+
+leaflet(data = favorite_stp_by_kennedy) %>% 
+  addProviderTiles(providers$Stamen.TonerBackground) %>% 
+  addCircles(lng = ~long, 
+             lat = ~lat, 
+             label = ~place, 
+             weight = 10, 
+             opacity = 1,
+             color = ~pal(top3)) %>% 
+  addLegend(pal = pal,
+            values= ~top3,
+            position = "bottomright",
+            title = NULL,
+            labels = ~c("Not top 3", "Top 3"))
+```
+  
+  
   * Connect all your locations together with a line in a meaningful way (you may need to order them differently in the original data).  
+  
+```{r}
+leaflet(data = favorite_stp_by_kennedy) %>% 
+  addProviderTiles(providers$Stamen.TonerBackground) %>% 
+  addCircles(lng = ~long, 
+             lat = ~lat, 
+             label = ~place, 
+             weight = 10, 
+             opacity = 1,
+             color = ~pal(top3)) %>% 
+  addLegend(pal = pal,
+            values= ~top3,
+            position = "bottomright",
+            title = NULL,
+            labels = ~c("Not top 3", "Top 3")) %>% 
+  addPolylines(lng = ~long,
+               lat = ~lat,
+               color = col2hex("darkred"))
+```
+  
   
   * If there are other variables you want to add that could enhance your plot, do that now.  
   
@@ -218,13 +299,49 @@ Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv
   9. Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. Use either color or size to show the variation in number of departures. This time, plot the points on top of a map. Use any of the mapping tools you'd like.
   
 ```{r}
+TripStationData <- Trips %>% 
+  group_by(sstation) %>% 
+  summarize(departures = n(),
+            name = sstation) %>% 
+  left_join(Stations,
+            by = c("name")) %>% 
+  distinct(sstation, .keep_all = TRUE) 
+  
+  
+WashDC <- get_stamenmap(
+    bbox = c(left = -77.3891, bottom = 38.7128, right = -76.6406, top = 39.0746), 
+    maptype = "toner-background",
+    zoom = 10)
 
+ggmap(WashDC) +
+  geom_point(data = TripStationData,
+             aes(x = long, y = lat, size = TripStationData$departures, alpha = .1)
+             ) +
+  labs(title = "Washington DC Density of Train Departures")
+  theme_map()
 ```
   
   10. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? Also plot this on top of a map. I think it will be more clear what the patterns are.
   
+  The majority of the casual riders are right in the center near some of the tourist attractions in DC.
 ```{r}
+CasData <- Trips %>% 
+  mutate(casual = ifelse(client == "Casual",1, 0)) %>% 
+  group_by(sstation) %>% 
+  summarize(departures = n(),
+            name = sstation,
+            total_cas = sum(casual),
+            percent_cas = total_cas/departures * 100) %>% 
+  left_join(Stations,
+            by = c("name")) %>% 
+  distinct(sstation, .keep_all = TRUE)
 
+ggmap(WashDC) +
+  geom_point(data=CasData,
+             aes(x = long, y = lat, color = percent_cas)) +
+  labs(title = "Washington DC Train Departures",
+       x = "",
+       y = "")
 ```
   
 ### COVID-19 data
@@ -233,7 +350,31 @@ The following exercises will use the COVID-19 data from the NYT.
 
   11. Create a map that colors the states by the most recent cumulative number of COVID-19 cases (remember, these data report cumulative numbers so you don't need to compute that). Describe what you see. What is the problem with this map?
   
+```{r}
+covid19 %>% 
+  group_by(state) %>% 
+  summarize(recentcount = max(cases)) %>% 
+  mutate(state = str_to_lower(state)) %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state,
+               fill = recentcount)) +
+  expand_limits(x = states_map$long, y = states_map$lat) + 
+  theme_map() +
+  labs(title = "Cumulative Number of COVID 19 Cases")
+```
+  
+  
   12. Now add the population of each state to the dataset and color the states by most recent cumulative cases/10,000 people. See the code for doing this with the Starbucks data. You will need to make some modifications. 
+  
+```{r}
+covid_with_2018_pop_est <-
+  covid19 %>% 
+  left_join(census_pop_est_2018,
+            by = c("state_name" = "state")) %>% 
+  mutate(starbucks_per_10000 = (n/est_pop_2018)*10000)
+```
+  
   
   13. **CHALLENGE** Choose 4 dates spread over the time period of the data and create the same map as in exercise 12 for each of the dates. Display the four graphs together using faceting. What do you notice?
   
@@ -242,6 +383,8 @@ The following exercises will use the COVID-19 data from the NYT.
 These exercises use the datasets `MplsStops` and `MplsDemo` from the `carData` library. Search for them in Help to find out more information.
 
   14. Use the `MplsStops` dataset to find out how many stops there were for each neighborhood and the proportion of stops that were for a suspicious vehicle or person. Sort the results from most to least number of stops. Save this as a dataset called `mpls_suspicious` and display the table.  
+  
+  
   
   15. Use a `leaflet` map and the `MplsStops` dataset to display each of the stops on a map as a small point. Color the points differently depending on whether they were for suspicious vehicle/person or a traffic stop (the `problem` variable). HINTS: use `addCircleMarkers`, set `stroke = FAlSE`, use `colorFactor()` to create a palette.  
   
