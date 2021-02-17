@@ -94,7 +94,9 @@ These exercises will reiterate what you learned in the "Mapping data with R" tut
 
 ### Starbucks locations (`ggmap`)
 
-  1. Add the `Starbucks` locations to a world map. Add an aesthetic to the world map that sets the color of the points according to the ownership type. What, if anything, can you deduce from this visualization?  
+  1. Add the `Starbucks` locations to a world map. Add an aesthetic to the world map that sets the color of the points according to the ownership type. What, if anything, can you deduce from this visualization? 
+  
+  I notice that certain ownership types are clustered in different geographies. For example, there are a lot of, if not all, joint ventures of the coast of Asia. 
   
 ```{r}
 #Code from "Mapping data in R" tutorial
@@ -144,7 +146,8 @@ world_toner <- get_stamenmap(
     zoom = 2)
 
 ggmap(world_toner) +
-  labs(title ="World Map")
+  labs(title ="World Map") +
+  theme_map()
 ```
   
 
@@ -155,7 +158,7 @@ ggmap(world_toner) +
   geom_point() +
   annotate(geom = "point", x =  - 93.1691, y =44.937, color = "red") +
   annotate(geom = "text", x =  - 93.1691, y =49, label = "Macalester", color = "red")+
-  labs("title = World Map with Macalester College")
+  labs(title = "World Map with Macalester College") +
   theme_map()
 ```
   
@@ -185,6 +188,8 @@ starbucks_with_2018_pop_est <-
 
   7. Create a choropleth map that shows the number of Starbucks per 10,000 people on a map of the US. Use a new fill color, add points for all Starbucks in the US (except Hawaii and Alaska), add an informative title for the plot, and include a caption that says who created the plot (you!). Make a conclusion about what you observe.
   
+  There are more Starbucks per capita the further northeast you travel which makes sense since that is where they started the company.
+  
 ```{r}
 states_map <- map_data("state")
 
@@ -196,7 +201,9 @@ starbucks_with_2018_pop_est %>%
                fill = starbucks_per_10000)) +
   expand_limits(x = states_map$long, y = states_map$lat) + 
   theme_map() +
-  scale_color_colorblind()
+  scale_fill_viridis_c(option = "B") +
+  labs(title = "Starbucks per 10,000 People",
+       caption = "Kennedy Kechely")
 ```
   
 
@@ -220,10 +227,10 @@ favorite_stp_by_kennedy <- tibble(
           44.944720, 44.948140, 44.0334518, 
           44.9447135925293, 39.83837127685547, 40.8088861,
           39.473114013671875),
-  top3 = c(0,1,0,
-           0,0,1,
-           0,0,0,
-           1)
+  top3 = c("Not top 3","Top 3","Not top 3",
+           "Not top 3","Not top 3","Top 3",
+           "Not top 3","Not top 3","Not top 3",
+           "Top 3")
   )
 ```
   
@@ -245,8 +252,8 @@ leaflet(data = favorite_stp_by_kennedy) %>%
   addLegend(pal = pal,
             values= ~top3,
             position = "bottomright",
-            title = NULL,
-            labels = ~c("Not top 3", "Top 3"))
+            title = NULL)  
+            
 ```
   
   
@@ -350,6 +357,7 @@ The following exercises will use the COVID-19 data from the NYT.
 
   11. Create a map that colors the states by the most recent cumulative number of COVID-19 cases (remember, these data report cumulative numbers so you don't need to compute that). Describe what you see. What is the problem with this map?
   
+  We don't have any population scale.
 ```{r}
 covid19 %>% 
   group_by(state) %>% 
@@ -389,24 +397,27 @@ ggplot(data = covid_with_2018_pop_est) +
   
   13. **CHALLENGE** Choose 4 dates spread over the time period of the data and create the same map as in exercise 12 for each of the dates. Display the four graphs together using faceting. What do you notice?
   
-```{r}
-covid19 %>% 
-  filter(date == "2020-03-01" |
-           date == "2020-05-01"|
-           date == "2020-08-01"|
-           date == "2020-11-01") %>% 
-  mutate(state = str_to_lower(state)) %>% 
-  left_join(census_pop_est_2018,
-            by = c("state" = "state")) %>% 
-  mutate(cases_per_10000 = (cases/est_pop_2018)*10000) %>% 
+  I tried to facet_wrap by date but failed. I think the rest of the code is right though.
   
-  ggplot() +
-  geom_map(map = states_map,
-           aes(map_id = state,
-               fill = cases_per_10000)) +
-  expand_limits(x = states_map$long, y = states_map$lat) + 
-  theme_map() +
-  labs(title = "Cumulative Number of COVID 19 Cases per 10,000 People")
+```{r}
+# covid19 %>% 
+#   filter(date == "2020-03-01" |
+#            date == "2020-05-01"|
+#            date == "2020-08-01"|
+#            date == "2020-11-01") %>% 
+#   mutate(state = str_to_lower(state)) %>% 
+#   left_join(census_pop_est_2018,
+#             by = c("state" = "state")) %>% 
+#   mutate(cases_per_10000 = (cases/est_pop_2018)*10000) %>% 
+#   
+#   ggplot() +
+#   facet_wrap(date) +
+#   geom_map(map = states_map,
+#            aes(map_id = state,
+#                fill = cases_per_10000)) +
+#   expand_limits(x = states_map$long, y = states_map$lat) + 
+#   theme_map() +
+#   labs(title = "Cumulative Number of COVID 19 Cases per 10,000 People")
   
 ```
   
@@ -481,7 +492,7 @@ leaflet(mpls_all) %>%
   
   18. Use `leaflet` to create a map of your own choosing. Come up with a question you want to try to answer and use the map to help answer that question. Describe what your map shows. 
   
-  This map shows the household income in each neighborhood. The wealthier neighborhoods are in the southwest of Minneapolis and the poorer neighboorhoods are in the center of the city.
+  This map shows the household income in each neighborhood. The wealthier neighborhoods are in the southwest of Minneapolis and the poorer neighborhoods are in the center of the city.
   
 ```{r}
 pal18 <- colorNumeric("magma", 
@@ -500,6 +511,8 @@ leaflet(mpls_all) %>%
 ## GitHub link
 
   19. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 04_exercises.Rmd, provide a link to the 04_exercises.md file, which is the one that will be most readable on GitHub.
+  
+  [My Github]()
 
 
 **DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
